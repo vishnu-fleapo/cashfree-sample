@@ -2,22 +2,27 @@
   "name": "cashfree-sample",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/app.js",
-    "start": "node server.js"
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "start": "node build/app.js",
+    "dev": "concurrently \"pnpm run build:watch\" \"pnpm run start:watch\"",
+    "start:watch": "nodemon build/app.js"
   },
-  "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.11.0",
   "dependencies": {
+    "@supabase/supabase-js": "^2.97.0",
+    "@types/cors": "^2.8.19",
+    "@types/morgan": "^1.9.10",
     "axios": "^1.13.5",
     "body-parser": "^2.2.2",
     "cashfree-pg": "^5.1.0",
     "cashfree-pg-sdk-nodejs": "^2.0.2",
+    "concurrently": "^9.2.1",
     "cors": "^2.8.6",
     "crypto": "^1.0.1",
     "dotenv": "^17.3.1",
@@ -25,6 +30,11 @@
     "morgan": "^1.10.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11"
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.3.0",
+    "nodemon": "^3.1.11",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.3"
   }
 }

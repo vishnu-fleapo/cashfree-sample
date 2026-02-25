@@ -1,14 +1,11 @@
 import express from "express";
-import dotenv from "dotenv";
+import { config } from "dotenv";
 import morgan from "morgan";
 import cors from "cors";
+import { paymentRoutes, payoutRoutes, servicesRoutes } from "./routes";
+import { verifyWebhookSignature } from "@/middleware/webhook";
 
-import paymentRoutes from "./routes/payment.js";
-import payoutRoutes from "./routes/payout.js";
-import { verifyWebhookSignature } from "./middleware/webhook.js";;
-
-dotenv.config();
-
+config();
 const app = express();
 
 app.use(morgan("dev"));
@@ -18,23 +15,21 @@ app.post(
   "/webhook",
   express.raw({ type: "application/json" }),
   verifyWebhookSignature,
-  (req, res) => {
-    console.log("Webhook Data:", req.webhookData);
+  (_req, res) => {
     res.send("OK");
-  }
+  },
 );
 
 app.use(express.json());
 
 app.use("/api/payment", paymentRoutes);
 app.use("/api/payout", payoutRoutes);
+app.use("/api/services", servicesRoutes);
 
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.send("🚀 Cashfree Server Running");
 });
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on port ${PORT}`)
-);
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

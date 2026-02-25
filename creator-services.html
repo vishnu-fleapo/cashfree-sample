@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Creator Services</title>
+
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: #f5f7fb;
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        max-width: 520px;
+        margin: 60px auto;
+        background: #ffffff;
+        padding: 24px;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      }
+
+      h1 {
+        margin-bottom: 20px;
+        font-size: 22px;
+        text-align: center;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+        margin-top: 14px;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+        outline: none;
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+
+      button {
+        width: 100%;
+        margin-top: 20px;
+        padding: 12px;
+        background: #4f46e5;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #4338ca;
+      }
+
+      .status {
+        margin-top: 16px;
+        text-align: center;
+        font-size: 14px;
+      }
+
+      .success {
+        color: #16a34a;
+      }
+
+      .error {
+        color: #dc2626;
+      }
+
+      .creator-box {
+        background: #f1f5f9;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>Create Service</h1>
+
+      <div class="creator-box">
+        <label for="creatorId">Creator ID</label>
+        <input id="creatorId" type="text" placeholder="creator-uuid" />
+      </div>
+
+      <label>Title</label>
+      <input id="title" placeholder="Service title" />
+
+      <label>Description</label>
+      <textarea id="description" placeholder="Describe your service"></textarea>
+
+      <label>Currency</label>
+      <select id="currency">
+        <option value="INR">INR</option>
+        <option value="USD">USD</option>
+      </select>
+
+      <label>Price</label>
+      <input id="price" type="number" placeholder="Amount" />
+
+      <button type="button" onclick="createService()">Create Service</button>
+
+      <div id="status" class="status"></div>
+
+      <hr style="margin: 32px 0" />
+
+      <h1 style="font-size: 20px">Your Services</h1>
+      <button
+        style="margin-top: 0; margin-bottom: 16px"
+        onclick="loadServices()"
+      >
+        Refresh Services
+      </button>
+
+      <div id="services"></div>
+    </div>
+
+    <script>
+      async function createService() {
+        const creatorIdInput = document.getElementById("creatorId");
+        const statusEl = document.getElementById("status");
+
+        statusEl.textContent = "";
+        statusEl.className = "status";
+
+        try {
+          const res = await fetch("http://localhost:6767/api/services", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: creatorIdInput.value,
+              title: document.getElementById("title").value,
+              description: document.getElementById("description").value,
+              currency: document.getElementById("currency").value,
+              price: Number(document.getElementById("price").value),
+            }),
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Failed");
+
+          statusEl.textContent = "Service created successfully ✅";
+          statusEl.classList.add("success");
+
+          document.getElementById("title").value = "";
+          document.getElementById("description").value = "";
+          document.getElementById("price").value = "";
+
+          loadServices();
+        } catch (err) {
+          statusEl.textContent = err.message;
+          statusEl.classList.add("error");
+        }
+      }
+
+      async function loadServices() {
+        const creatorId = document.getElementById("creatorId").value;
+        const servicesEl = document.getElementById("services");
+
+        servicesEl.innerHTML = "Loading...";
+
+        try {
+          const res = await fetch(
+            `http://localhost:6767/api/services/creator?userId=${creatorId}`,
+          );
+          const services = await res.json();
+
+          servicesEl.innerHTML = "";
+
+          if (!services.length) {
+            servicesEl.innerHTML = "<p>No services yet.</p>";
+            return;
+          }
+
+          services.forEach((s) => {
+            servicesEl.innerHTML += `
+            <div style="
+              padding: 12px;
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+              margin-bottom: 10px;
+            ">
+              <strong>${s.title}</strong><br />
+              ${s.currency} ${s.price}
+            </div>
+          `;
+          });
+        } catch {
+          servicesEl.innerHTML = "<p>Failed to load services</p>";
+        }
+      }
+    </script>
+  </body>
+</html>

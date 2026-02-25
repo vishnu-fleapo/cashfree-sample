@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -114,4 +114,210 @@
 
 </body>
 
+</html> -->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Service Checkout</title>
+
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: #f5f7fb;
+        margin: 0;
+        padding: 40px;
+      }
+
+      .container {
+        max-width: 720px;
+        margin: auto;
+        background: #fff;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      }
+
+      h2 {
+        margin-bottom: 12px;
+      }
+
+      input,
+      button {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 12px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+      }
+
+      button {
+        background: #4f46e5;
+        color: white;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #4338ca;
+      }
+
+      .service {
+        border: 1px solid #e5e7eb;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        cursor: pointer;
+      }
+
+      .service:hover {
+        background: #f9fafb;
+      }
+
+      .service.selected {
+        border-color: #4f46e5;
+        background: #eef2ff;
+      }
+
+      .section {
+        margin-top: 24px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h2>User</h2>
+      <input id="userId" placeholder="Enter User ID" />
+
+      <button onclick="loadServices()">Load Services</button>
+
+      <div class="section">
+        <h2>Available Services</h2>
+        <div id="services"></div>
+      </div>
+
+      <div class="section">
+        <h2>Payment</h2>
+
+        <input id="amount" type="number" placeholder="Amount" readonly />
+        <input id="phone" placeholder="Phone Number" />
+
+        <button id="payBtn">Pay Now</button>
+      </div>
+    </div>
+
+    <script>
+      const cashfree = Cashfree({ mode: "sandbox" });
+      let selectedService = null;
+
+      async function loadServices() {
+        const servicesEl = document.getElementById("services");
+        servicesEl.innerHTML = "Loading...";
+
+        const res = await fetch("http://localhost:6767/api/services");
+        const services = await res.json();
+
+        servicesEl.innerHTML = "";
+
+        services.forEach((s) => {
+          const div = document.createElement("div");
+          div.className = "service";
+          div.innerHTML = `<strong>${s.title}</strong><br>${s.currency} ${s.price}`;
+
+          div.onclick = () => {
+            document
+              .querySelectorAll(".service")
+              .forEach((el) => el.classList.remove("selected"));
+
+            div.classList.add("selected");
+            selectedService = s;
+            document.getElementById("amount").value = s.price;
+          };
+
+          servicesEl.appendChild(div);
+        });
+      }
+
+      document.getElementById("payBtn").addEventListener("click", async () => {
+        if (!selectedService) {
+          alert("Select a service first");
+          return;
+        }
+
+        const phone = document.getElementById("phone").value;
+        const userId = document.getElementById("userId").value;
+
+        if (!phone || !userId) {
+          alert("User ID and phone are required");
+          return;
+        }
+
+        const response = await fetch(
+          "http://localhost:6767/api/payment/create-order",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              orderAmount: selectedService.price,
+              customerId: userId,
+              customerPhone: phone,
+              serviceId: selectedService.id,
+            }),
+          },
+        );
+
+        const data = await response.json();
+        if (!data.payment_session_id) {
+          alert("Order creation failed");
+          return;
+        }
+
+        cashfree
+          .checkout({
+            paymentSessionId: data.payment_session_id,
+            redirectTarget: "_modal",
+          })
+          .then(async (result) => {
+            if (result.error) {
+              alert("❌ Payment cancelled");
+              return;
+            }
+
+            if (!result.paymentDetails) {
+              alert("⏳ Payment processing. You’ll be notified shortly.");
+              return;
+            }
+
+            const orderId = result.paymentDetails.orderId;
+
+            const verify = await fetch(
+              `http://localhost:6767/api/payment/verify/${orderId}`,
+            );
+
+            const verifyData = await verify.json();
+
+            if (verifyData.order_status === "PAID") {
+              alert("✅ Payment Successful");
+            } else {
+              alert("❌ Payment Failed or Pending");
+            }
+          })
+          .catch((e) => {
+            console.error("Payment error:", e);
+            alert("❌ Payment failed. Please try again.");
+          });
+      });
+    </script>
+  </body>
 </html>
