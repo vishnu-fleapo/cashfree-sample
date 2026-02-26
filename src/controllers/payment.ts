@@ -5,8 +5,14 @@ import {
   createSubscription,
   findPaymentByOrderId,
   verifyOrderService,
+  getOrderService,
 } from "@/services";
-import { CreateOrderBody, VerifyOrderParams } from "@/types";
+import {
+  CreateOrderBody,
+  VerifyOrderParams,
+  ECashfreePaymentStatus,
+} from "@/types";
+import { generateUUID } from "@/utils";
 
 export const createOrder = async (
   req: Request<{}, {}, CreateOrderBody>,
@@ -15,7 +21,7 @@ export const createOrder = async (
   try {
     const { orderAmount, customerId, customerPhone, serviceId } = req.body;
 
-    const orderId = `order_${Date.now()}`;
+    const orderId = generateUUID("ORD");
 
     const response = await createOrderService({
       order_id: orderId,
@@ -29,6 +35,8 @@ export const createOrder = async (
         serviceId,
       },
     });
+
+    console.log(response.data);
 
     return res.json(response.data);
   } catch (error) {
@@ -46,14 +54,27 @@ export const verifyOrder = async (
 
     const { data } = await verifyOrderService(orderId);
 
-    if (data.payment_status !== "SUCCESS" || !data.is_captured) {
+    if (!Array.isArray(data) || data.length === 0) {
+      return res.status(400).json({ error: "No payments found" });
+    }
+
+    const paymentData = data[0];
+
+    const { data: orderData } = await getOrderService(orderId);
+    console.log(orderData, "Order data");
+    if (
+      paymentData.payment_status !== ECashfreePaymentStatus.SUCCESS ||
+      !paymentData.is_captured
+    ) {
       return res.status(400).json({ error: "Payment not successful" });
     }
 
-    const { payment_amount, payment_status, order_id, customer_details } = data;
+    const { payment_amount, payment_status, order_id, cf_payment_id } =
+      paymentData;
+    const { customer_details, order_tags } = orderData;
 
     const userId = customer_details!.customer_id!;
-    const serviceId = data.order_tags!.serviceId!;
+    const serviceId = order_tags!.serviceId!;
     if (!serviceId) {
       return res.status(400).json({ error: "Missing service" });
     }
@@ -72,6 +93,7 @@ export const verifyOrder = async (
       order_id,
       user_id: userId,
       service_id: serviceId,
+      gateway_payment_id: cf_payment_id,
       amount: payment_amount,
       status: payment_status,
     });

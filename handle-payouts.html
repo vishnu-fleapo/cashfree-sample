@@ -1,0 +1,294 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Payout Requests</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #f6f8fb;
+        margin: 0;
+        padding: 40px;
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: auto;
+      }
+
+      h1 {
+        margin-bottom: 20px;
+        font-size: 28px;
+      }
+
+      .filter-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      select {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        background: white;
+        cursor: pointer;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+      }
+
+      th,
+      td {
+        padding: 14px 16px;
+        text-align: left;
+      }
+
+      th {
+        background: #f3f5f9;
+        font-weight: 600;
+        font-size: 14px;
+        color: #555;
+      }
+
+      tr {
+        border-bottom: 1px solid #eee;
+      }
+
+      tr:hover {
+        background: #fafbff;
+      }
+
+      .badge {
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-block;
+      }
+
+      .SUCCESS {
+        background: #e6f7ef;
+        color: #1b8a5a;
+      }
+      .PENDING {
+        background: #fff4e5;
+        color: #b26a00;
+      }
+      .FAILED {
+        background: #fde8e8;
+        color: #c53030;
+      }
+      .REVERSED {
+        background: #eef2ff;
+        color: #4c51bf;
+      }
+      .REJECTED {
+        background: #fbe7ff;
+        color: #7b2cbf;
+      }
+      .ERROR {
+        background: #ffe3e3;
+        color: #a4161a;
+      }
+      .waiting_for_approval {
+        background: #e0f2fe;
+        color: #0369a1;
+      }
+
+      .empty {
+        text-align: center;
+        padding: 40px;
+        color: #777;
+      }
+
+      .action-btn {
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .approve-btn {
+        background: #2563eb;
+        color: white;
+      }
+
+      .approve-btn:hover {
+        background: #1e40af;
+      }
+
+      .action-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      @media (max-width: 768px) {
+        table {
+          font-size: 13px;
+        }
+
+        th,
+        td {
+          padding: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Payout Requests</h1>
+
+      <div class="filter-bar">
+        <div>
+          <label>Status:</label>
+          <select id="statusFilter">
+            <option value="">All</option>
+            <option value="waiting_for_approval">Waiting for Approval</option>
+            <option value="SUCCESS">Success</option>
+            <option value="PENDING">Pending</option>
+            <option value="FAILED">Failed</option>
+            <option value="REVERSED">Reversed</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="ERROR">Error</option>
+          </select>
+        </div>
+      </div>
+
+      <table id="payoutTable">
+        <thead>
+          <tr>
+            <th>Creator</th>
+            <th>Beneficiary</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Approved At</th>
+            <th>Failure Reason</th>
+            <th>Created At</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div id="emptyState" class="empty" style="display: none">
+        No payout requests found.
+      </div>
+    </div>
+
+    <script>
+      const tableBody = document.querySelector("#payoutTable tbody");
+      const statusFilter = document.getElementById("statusFilter");
+      const emptyState = document.getElementById("emptyState");
+
+      async function fetchPayouts(status = "") {
+        tableBody.innerHTML = "";
+        emptyState.style.display = "none";
+
+        let url = "http://localhost:6767/api/payout/requests";
+        if (status) {
+          url += `?status=${status}`;
+        }
+
+        const res = await fetch(url);
+        const result = await res.json();
+
+        if (!result || result.length === 0) {
+          emptyState.style.display = "block";
+          return;
+        }
+        result.forEach((payout) => {
+          const row = document.createElement("tr");
+          row.setAttribute("data-id", payout.id);
+
+          const isWaiting = payout.status === "waiting_for_approval";
+
+          row.innerHTML = `
+        <td>${payout.users?.name || "-"}</td>
+        <td>${payout.beneficiary_id}</td>
+        <td>₹ ${Number(payout.amount).toLocaleString()}</td>
+        <td>
+          <span class="badge ${payout.status}">
+            ${payout.status.replaceAll("_", " ")}
+          </span>
+        </td>
+        <td>
+          ${
+            payout.approved_at
+              ? new Date(payout.approved_at).toLocaleString()
+              : "-"
+          }
+        </td>
+        <td>${payout.failure_reason || "-"}</td>
+        <td>${new Date(payout.created_at).toLocaleString()}</td>
+        <td>
+          ${
+            isWaiting
+              ? `<button class="action-btn approve-btn" onclick="approvePayout('${payout.id}', this)">Approve</button>`
+              : "-"
+          }
+        </td>
+      `;
+          tableBody.appendChild(row);
+        });
+      }
+
+      statusFilter.addEventListener("change", () => {
+        fetchPayouts(statusFilter.value);
+      });
+
+      fetchPayouts();
+
+      async function approvePayout(payoutId, button) {
+        try {
+          button.disabled = true;
+          button.innerText = "Processing...";
+
+          const res = await fetch(
+            `http://localhost:6767/api/payout/approve/${payoutId}`,
+            {
+              method: "POST",
+            },
+          );
+
+          if (!res.ok) {
+            throw new Error("Approval failed");
+          }
+
+          const updatedPayout = await res.json();
+
+          const row = document.querySelector(`tr[data-id='${payoutId}']`);
+
+          if (row) {
+            row.cells[3].innerHTML = `
+        <span class="badge ${updatedPayout.status}">
+          ${updatedPayout.status.replaceAll("_", " ")}
+        </span>
+      `;
+
+            row.cells[4].innerText = new Date(
+              updatedPayout.approved_at,
+            ).toLocaleString();
+
+            row.cells[5].innerText = updatedPayout.failure_reason || "-";
+
+            row.cells[7].innerHTML = "-";
+          }
+        } catch (err) {
+          alert("Failed to approve payout");
+          button.disabled = false;
+          button.innerText = "Approve";
+        }
+      }
+    </script>
+  </body>
+</html>

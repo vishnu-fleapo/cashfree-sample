@@ -134,9 +134,97 @@
       </button>
 
       <div id="services"></div>
+
+      <hr style="margin: 32px 0" />
+
+      <h1 style="font-size: 20px">Subscriptions</h1>
+      <button
+        style="margin-top: 0; margin-bottom: 16px"
+        onclick="loadSubscriptions()"
+      >
+        Load Subscriptions
+      </button>
+
+      <div id="subscriptions"></div>
+
+      <hr style="margin: 24px 0" />
+
+      <button onclick="requestPayout()">Redeem Earnings</button>
+
+      <div id="payoutStatus" style="margin-top: 12px; font-weight: 600"></div>
     </div>
 
     <script>
+      async function loadSubscriptions() {
+        const creatorId = document.getElementById("creatorId").value;
+        const container = document.getElementById("subscriptions");
+        const payoutStatus = document.getElementById("payoutStatus");
+
+        if (!creatorId) {
+          container.innerHTML = "<p>Enter Creator ID first</p>";
+          return;
+        }
+
+        container.innerHTML = "Loading...";
+        payoutStatus.innerHTML = "";
+
+        try {
+          const res = await fetch(
+            `http://localhost:6767/api/services/subscriptions?userId=${creatorId}`,
+          );
+
+          const data = await res.json();
+          container.innerHTML = "";
+
+          if (!data.length) {
+            container.innerHTML = "<p>No subscriptions found.</p>";
+            return;
+          }
+
+          let payoutAlreadyRequested = false;
+          let totalEarned = 0;
+
+          data.forEach((sub) => {
+            if (sub.payout_id) {
+              payoutAlreadyRequested = true;
+            }
+
+            if (sub.payments?.status === "SUCCESS") {
+              totalEarned += sub.payments.amount || 0;
+            }
+
+            container.innerHTML += `
+        <div style="
+          padding: 12px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          margin-bottom: 10px;
+          background: #f9fafb;
+        ">
+          <strong>${sub.services?.title || "Service"}</strong><br />
+          Amount: ${sub.services?.currency || "₹"} ${
+            sub.payments?.amount || 0
+          }<br />
+          Payment Status: ${sub.payments?.status || "N/A"}<br />
+          User name: ${sub.users?.name || "N/A"}<br />
+          Subscribed On: ${new Date(sub.created_at).toLocaleString()}
+        </div>
+      `;
+          });
+
+          payoutStatus.innerHTML = `
+      Total Earned: ₹${totalEarned} <br/>
+      ${
+        payoutAlreadyRequested
+          ? "Payout already requested ✅"
+          : "You can redeem your earnings"
+      }
+    `;
+        } catch (err) {
+          container.innerHTML = "<p>Failed to load subscriptions</p>";
+        }
+      }
+
       async function createService() {
         const creatorIdInput = document.getElementById("creatorId");
         const statusEl = document.getElementById("status");
@@ -208,6 +296,41 @@
           });
         } catch {
           servicesEl.innerHTML = "<p>Failed to load services</p>";
+        }
+      }
+
+      async function requestPayout() {
+        const creatorId = document.getElementById("creatorId").value;
+        const payoutStatus = document.getElementById("payoutStatus");
+
+        if (!creatorId) {
+          payoutStatus.innerHTML = "Enter Creator ID first";
+          payoutStatus.style.color = "red";
+          return;
+        }
+
+        payoutStatus.innerHTML = "Requesting payout...";
+
+        try {
+          const res = await fetch(
+            `http://localhost:6767/api/payout/request/${creatorId}`,
+            {
+              method: "POST",
+            },
+          );
+
+          const data = await res.json();
+
+          if (data?.id) {
+            payoutStatus.innerHTML = `Payout Requested Successfully ✅ <br/> Payout ID: ${data.id}`;
+            payoutStatus.style.color = "green";
+          } else {
+            payoutStatus.innerHTML = "No earnings available to redeem ❌";
+            payoutStatus.style.color = "red";
+          }
+        } catch (err) {
+          payoutStatus.innerHTML = "Payout request failed ❌";
+          payoutStatus.style.color = "red";
         }
       }
     </script>

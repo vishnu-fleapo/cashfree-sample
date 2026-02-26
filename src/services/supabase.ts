@@ -1,5 +1,18 @@
 import { supabase } from "@/utils";
-import { Payment, Service, Subscription, User } from "@/types";
+import {
+  AdminPayoutRequest,
+  CashfreeBeneficiaries,
+  CreateBeneficiaryInput,
+  CreatorPendingPayoutResponse,
+  CreatorSubscription,
+  GetUserSubscriptionsResponse,
+  Payment,
+  Payout,
+  PayoutTransferStatus,
+  Service,
+  Subscription,
+  User,
+} from "@/types";
 
 export const getAllUsers = async (): Promise<User[]> => {
   const { data, error } = await supabase
@@ -21,18 +34,6 @@ export const getServicesByCreator = async (
 
   if (error) throw error;
   return data ?? ([] as Service[]);
-};
-
-export const getUserSubscriptions = async (
-  userId: string,
-): Promise<Subscription[]> => {
-  const { data, error } = await supabase
-    .from("subscriptions")
-    .select("*")
-    .eq("user_id", userId);
-
-  if (error) throw error;
-  return (data as Subscription[]) ?? ([] as Subscription[]);
 };
 
 export const getPaymentsByUser = async (userId: string): Promise<Payment[]> => {
@@ -66,6 +67,7 @@ export const createPayment = async (payload: {
   service_id: string;
   amount: number;
   status: string;
+  gateway_payment_id: string;
 }): Promise<Payment> => {
   const { data, error } = await supabase
     .from("payments")
@@ -113,7 +115,6 @@ export const createService = async (payload: {
   currency: string;
   creator_id: string;
 }): Promise<Service> => {
-  console.log("Creating service with payload:", payload);
   const { data, error } = await supabase
     .from("services")
     .insert(payload)
@@ -149,61 +150,199 @@ export const getServicesPerCreator = async (
 
 export const getSubscriptionsPerCreator = async (
   creatorId: string,
-): Promise<Subscription[]> => {
+): Promise<CreatorSubscription[]> => {
   const { data, error } = await supabase
     .from("subscriptions")
     .select(
       `
-      *,
-      payments (*),
-      services (*)
+      id,
+      created_at,
+      user_id,
+      users!inner (
+        id,
+        name
+      ),
+      payments (
+        id,
+        amount,
+        status
+      ),
+      payout_id,
+      services!inner (
+        id,
+        title,
+        price,
+        currency,
+        creator_id
+      )
     `,
     )
     .eq("services.creator_id", creatorId);
 
   if (error) throw error;
 
-  return data as Subscription[];
+  return data as any[];
 };
 
-// export const seedUsersAndCreators = async () => {
-//   const users = [
-//     {
-//       name: "User Three",
-//       email: "user3@example.com",
-//       role: "user",
-//     },
-//     {
-//       name: "User Four",
-//       email: "user4@example.com",
-//       role: "user",
-//     },
-//     {
-//       name: "Creator Three",
-//       email: "creator3@example.com",
-//       role: "creator",
-//     },
-//     {
-//       name: "Creator Four",
-//       email: "creator4@example.com",
-//       role: "creator",
-//     },
-//   ];
+export const getUserSubscriptions = async (userId: string) => {
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .select(
+      `
+      id,
+      created_at,
+      payments (
+        id,
+        amount,
+        status,
+        gateway_payment_id
+      ),
+      services (
+        title,
+        description
+      )
+    `,
+    )
+    .eq("user_id", userId);
 
-//   const { error: userError, data: userData } = await supabase
-//     .from("users")
-//     .upsert(users, { onConflict: "id" })
-//     .select();
+  if (error) throw error;
+  return data;
+};
 
-//   if (userError) throw userError;
+export const getCreatorPendingPayoutAmount = async (
+  creatorId: string,
+): Promise<CreatorPendingPayoutResponse[]> => {
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .select(
+      `
+      id,
+      payments!inner (
+        amount,
+        status
+      ),
+      services!inner (
+        creator_id
+      )
+    `,
+    )
+    .eq("services.creator_id", creatorId)
+    .is("payout_id", null)
+    .eq("payments.status", "SUCCESS");
 
-//   return userData;
-// };
+  if (error) throw error;
 
-// seedUsersAndCreators()
-//   .then((data) => {
-//     console.log(data);
-//   })
-//   .catch((error) => {
-//     console.error(error);
-//   });
+  console.log(data);
+
+  return data as any;
+};
+
+export const createCreatorBeneficiary = async (
+  input: CreateBeneficiaryInput,
+) => {
+  const { beneficiary_id, user_id } = input;
+  const { data, error } = await supabase
+    .from("cashfree_beneficiaries")
+    .insert({
+      beneficiary_id,
+      user_id,
+    })
+    .select();
+
+  if (error) throw error;
+
+  return data[0] as CashfreeBeneficiaries;
+};
+
+export const createPayout = async (input: Payout): Promise<Payout> => {
+  const { data, error } = await supabase.from("payouts").insert(input).select();
+
+  if (error) throw error;
+
+  return data[0] as Payout;
+};
+
+export const getLatestBeneficary = async (
+  userId: string,
+): Promise<CashfreeBeneficiaries> => {
+  const { data, error } = await supabase
+    .from("cashfree_beneficiaries")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data[0] as CashfreeBeneficiaries;
+};
+
+export const getPayoutDetails = async (payoutId: string): Promise<Payout> => {
+  const { data, error } = await supabase
+    .from("payouts")
+    .select("*")
+    .eq("id", payoutId);
+
+  if (error) throw error;
+
+  return data[0] as Payout;
+};
+
+export const updatePayout = async (input: Payout): Promise<Payout> => {
+  const { data, error } = await supabase
+    .from("payouts")
+    .update(input)
+    .eq("id", input.id)
+    .select();
+
+  if (error) throw error;
+
+  return data[0] as Payout;
+};
+
+export const updateSubscriptions = async (input: {
+  subscriptionIds: string[];
+  payout_id: string;
+}): Promise<void> => {
+  const { subscriptionIds, payout_id } = input;
+
+  if (!subscriptionIds.length) return;
+
+  const { error } = await supabase
+    .from("subscriptions")
+    .update({ payout_id })
+    .in("id", subscriptionIds);
+
+  if (error) throw error;
+};
+
+export const getPayoutRequestsService = async (
+  status?: PayoutTransferStatus,
+): Promise<AdminPayoutRequest[]> => {
+  let query = supabase
+    .from("payouts")
+    .select(
+      `
+      id,
+      amount,
+      status,
+      created_at,
+      approved_at,
+      failure_reason,
+      beneficiary_id,
+      users (
+        id,
+        name
+      )
+    `,
+    )
+    .order("created_at", { ascending: false });
+
+  if (status) {
+    query = query.eq("status", status);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  return data as any[];
+};

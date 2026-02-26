@@ -3,25 +3,35 @@ import { AxiosResponse } from "axios";
 import {
   CreateOrderPayload,
   CashfreeResponse,
-  CashfreePaymentVerify,
+  GetPaymentsForOrderResponse,
+  CashfreeOrder,
+  CreateBeneficiaryV2Request,
+  CreateBeneficiaryV2Response,
+  StandardTransferV2Response,
+  TransferRequest,
 } from "@/types";
 
 export const createOrderService = (
   data: CreateOrderPayload,
 ): Promise<AxiosResponse<CashfreeResponse>> =>
-  cashfreePGInstance.post("/orders", data);
+  cashfreePGInstance.post("/pg/orders", data);
 
 export const verifyOrderService = (
   orderId: string,
-): Promise<AxiosResponse<CashfreePaymentVerify>> =>
-  cashfreePGInstance.get(`/orders/${orderId}`);
+): Promise<AxiosResponse<GetPaymentsForOrderResponse>> =>
+  cashfreePGInstance.get(`/pg/orders/${orderId}/payments`);
+
+export const getOrderService = (
+  orderId: string,
+): Promise<AxiosResponse<CashfreeOrder>> =>
+  cashfreePGInstance.get(`/pg/orders/${orderId}`);
 
 export const createBeneficiaryService = (
-  data: unknown,
-): Promise<AxiosResponse<CashfreeResponse>> =>
-  cashfreePayoutInstance.post("/beneficiary", data);
+  data: CreateBeneficiaryV2Request,
+): Promise<AxiosResponse<CreateBeneficiaryV2Response>> =>
+  cashfreePayoutInstance.post("/payout/beneficiary", data);
 
 export const createTransferService = (
-  data: unknown,
-): Promise<AxiosResponse<CashfreeResponse>> =>
-  cashfreePayoutInstance.post("/transfers", data);
+  data: TransferRequest,
+): Promise<AxiosResponse<StandardTransferV2Response>> =>
+  cashfreePayoutInstance.post("/payout/transfers", data);

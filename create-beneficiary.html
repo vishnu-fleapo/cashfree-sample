@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Create Beneficiary</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f4f6fb;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+
+      .card {
+        background: white;
+        width: 420px;
+        padding: 30px;
+        border-radius: 14px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      }
+
+      h2 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 22px;
+        text-align: center;
+      }
+
+      .form-group {
+        margin-bottom: 14px;
+      }
+
+      input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #dcdfe6;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+      }
+
+      input:focus {
+        border-color: #2563eb;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      }
+
+      button {
+        width: 100%;
+        padding: 11px;
+        border-radius: 8px;
+        border: none;
+        background: #2563eb;
+        color: white;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: 0.2s ease;
+      }
+
+      button:hover {
+        background: #1e40af;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      #status {
+        margin-top: 15px;
+        font-size: 13px;
+        word-break: break-word;
+        padding: 10px;
+        border-radius: 8px;
+        display: none;
+      }
+
+      .success {
+        background: #e6f7ef;
+        color: #1b8a5a;
+      }
+
+      .error {
+        background: #fde8e8;
+        color: #c53030;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="card">
+      <h2>Add Beneficiary</h2>
+
+      <div class="form-group">
+        <input id="userId" placeholder="User ID" />
+      </div>
+
+      <div class="form-group">
+        <input id="name" placeholder="Full Name" />
+      </div>
+
+      <div class="form-group">
+        <input id="account" placeholder="Bank Account Number" />
+      </div>
+
+      <div class="form-group">
+        <input id="ifsc" placeholder="IFSC Code" />
+      </div>
+
+      <div class="form-group">
+        <input id="email" placeholder="Email" />
+      </div>
+
+      <div class="form-group">
+        <input id="phone" placeholder="Phone" />
+      </div>
+
+      <div class="form-group">
+        <input id="address" placeholder="Address" />
+      </div>
+
+      <div class="form-group">
+        <input id="city" placeholder="City" />
+      </div>
+
+      <div class="form-group">
+        <input id="state" placeholder="State" />
+      </div>
+
+      <div class="form-group">
+        <input id="postal" placeholder="Postal Code" />
+      </div>
+
+      <button onclick="createBeneficiary()" id="submitBtn">
+        Create Beneficiary
+      </button>
+
+      <div id="status"></div>
+    </div>
+
+    <script>
+      async function createBeneficiary() {
+        const btn = document.getElementById("submitBtn");
+        const statusEl = document.getElementById("status");
+
+        btn.disabled = true;
+        btn.innerText = "Creating...";
+
+        const body = {
+          customerId: document.getElementById("userId").value,
+          name: document.getElementById("name").value,
+          bankAccount: document.getElementById("account").value,
+          ifsc: document.getElementById("ifsc").value,
+          email: document.getElementById("email").value,
+          phone: document.getElementById("phone").value,
+          countryCode: "+91",
+          address: document.getElementById("address").value,
+          city: document.getElementById("city").value,
+          state: document.getElementById("state").value,
+          postalCode: document.getElementById("postal").value,
+        };
+
+        try {
+          const res = await fetch(
+            "http://localhost:6767/api/payout/beneficiary",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            },
+          );
+
+          const data = await res.json();
+
+          statusEl.style.display = "block";
+
+          if (res.ok) {
+            statusEl.className = "success";
+            statusEl.innerText = "Beneficiary created successfully!";
+          } else {
+            statusEl.className = "error";
+            statusEl.innerText = data.error || "Something went wrong";
+          }
+        } catch (err) {
+          statusEl.style.display = "block";
+          statusEl.className = "error";
+          statusEl.innerText = "Server error occurred";
+        }
+
+        btn.disabled = false;
+        btn.innerText = "Create Beneficiary";
+      }
+    </script>
+  </body>
+</html>

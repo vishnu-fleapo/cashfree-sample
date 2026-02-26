@@ -28,36 +28,15 @@ export const validateBeneficiary = (
   res: Response,
   next: NextFunction,
 ): Response | void => {
-  const { beneficiaryId, name, bankAccount, ifsc } = req.body as {
-    beneficiaryId: string;
+  const { customerId, name, bankAccount, ifsc } = req.body as {
+    customerId: string;
     name: string;
     bankAccount: string;
     ifsc: string;
   };
 
-  if (!beneficiaryId || !name || !bankAccount || !ifsc) {
+  if (!customerId || !name || !bankAccount || !ifsc) {
     return res.status(400).json({ error: "Missing beneficiary details" });
-  }
-
-  next();
-};
-
-export const validateTransfer = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Response | void => {
-  const { beneficiaryId, amount } = req.body as {
-    beneficiaryId: string;
-    amount: number;
-  };
-
-  if (!beneficiaryId || !amount) {
-    return res.status(400).json({ error: "Missing transfer details" });
-  }
-
-  if (amount <= 0) {
-    return res.status(400).json({ error: "Invalid transfer amount" });
   }
 
   next();

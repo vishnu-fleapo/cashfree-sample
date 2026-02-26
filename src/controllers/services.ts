@@ -4,6 +4,7 @@ import {
   getServices,
   getServicesPerCreator,
   getSubscriptionsPerCreator,
+  getUserSubscriptions,
 } from "@/services";
 import { CreateServiceInput } from "@/types";
 
@@ -60,5 +61,23 @@ export const getCreatorServicesController = async (
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Failed to get services" });
+  }
+};
+
+export const getUserSubscriptionsController = async (
+  req: Request<{}, {}, {}, { userId: string }>,
+  res: Response,
+): Promise<Response> => {
+  try {
+    const { userId } = req.query;
+    const data = await getUserSubscriptions(userId);
+
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error("getUserSubscriptionsController error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to fetch subscriptions",
+    });
   }
 };

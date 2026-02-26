@@ -1,170 +1,158 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cashfree Payouts</title>
 
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f9;
-            padding: 30px;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f9;
+        padding: 30px;
+      }
 
-        .container {
-            display: flex;
-            gap: 40px;
-        }
+      .container {
+        display: flex;
+        gap: 40px;
+      }
 
-        .card {
-            background: white;
-            padding: 25px;
-            width: 350px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
+      .card {
+        background: white;
+        padding: 25px;
+        width: 350px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
 
-        h2 {
-            margin-bottom: 15px;
-        }
+      h2 {
+        margin-bottom: 15px;
+      }
 
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 12px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-        }
+      input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 12px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+      }
 
-        button {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 6px;
-            background: #0066ff;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-        }
+      button {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 6px;
+        background: #0066ff;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+      }
 
-        button:hover {
-            background: #004ed1;
-        }
+      button:hover {
+        background: #004ed1;
+      }
 
-        .success-box {
-            background: #e6ffed;
-            color: #0a7f2e;
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 6px;
-            display: none;
-        }
+      .success-box {
+        background: #e6ffed;
+        color: #0a7f2e;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 6px;
+        display: none;
+      }
     </style>
-</head>
+  </head>
 
-<body>
-
+  <body>
     <div class="container">
+      <!-- SECTION 1 -->
+      <div class="card">
+        <h2>Create Beneficiary</h2>
 
-        <!-- SECTION 1 -->
-        <div class="card">
-            <h2>Create Beneficiary</h2>
+        <input type="text" id="bName" placeholder="Name" />
+        <input type="text" id="bank" placeholder="Bank Account Number" />
+        <input type="text" id="ifsc" placeholder="IFSC Code" />
+        <input type="text" id="email" placeholder="Email" />
+        <input type="text" id="phone" placeholder="Phone" />
 
-            <input type="text" id="bName" placeholder="Name">
-            <input type="text" id="bank" placeholder="Bank Account Number">
-            <input type="text" id="ifsc" placeholder="IFSC Code">
-            <input type="text" id="email" placeholder="Email">
-            <input type="text" id="phone" placeholder="Phone">
+        <button onclick="createBeneficiary()">Create Beneficiary</button>
 
-            <button onclick="createBeneficiary()">Create Beneficiary</button>
+        <div id="beneficiaryResult" class="success-box"></div>
+      </div>
 
-            <div id="beneficiaryResult" class="success-box"></div>
-        </div>
+      <!-- SECTION 2 -->
+      <div class="card">
+        <h2>Send Payout</h2>
 
-        <!-- SECTION 2 -->
-        <div class="card">
-            <h2>Send Payout</h2>
+        <input type="text" id="beneficiaryId" placeholder="Beneficiary ID" />
+        <input type="number" id="amount" placeholder="Amount" />
 
-            <input type="text" id="beneficiaryId" placeholder="Beneficiary ID">
-            <input type="number" id="amount" placeholder="Amount">
+        <button onclick="sendPayout()">Send Payout</button>
 
-            <button onclick="sendPayout()">Send Payout</button>
-
-            <div id="transferResult" class="success-box"></div>
-        </div>
-
+        <div id="transferResult" class="success-box"></div>
+      </div>
     </div>
 
     <script>
+      async function createBeneficiary() {
+        const response = await fetch(
+          "http://localhost:6767/api/payout/beneficiary",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: bName.value,
+              bankAccount: bank.value,
+              ifsc: ifsc.value,
+              vpa: "",
+              email: email.value,
+              phone: phone.value,
+              countryCode: "+91",
+              address: "Test Address",
+              city: "Bangalore",
+              state: "Karnataka",
+              postalCode: "560001",
+            }),
+          },
+        );
 
-        async function createBeneficiary() {
+        const data = await response.json();
 
-            const response = await fetch(
-                "http://localhost:6767/api/payout/beneficiary",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        beneficiaryId: "BEN_" + Date.now(),
-                        name: bName.value,
-                        bankAccount: bank.value,
-                        ifsc: ifsc.value,
-                        vpa: "",
-                        email: email.value,
-                        phone: phone.value,
-                        countryCode: "+91",
-                        address: "Test Address",
-                        city: "Bangalore",
-                        state: "Karnataka",
-                        postalCode: "560001"
-                    })
-                }
-            );
+        if (data.beneficiary_id) {
+          beneficiaryResult.style.display = "block";
+          beneficiaryResult.innerHTML =
+            "✅ Beneficiary Created<br>ID: <b>" + data.beneficiary_id + "</b>";
 
-            const data = await response.json();
-
-            if (data.beneficiary_id) {
-                beneficiaryResult.style.display = "block";
-                beneficiaryResult.innerHTML =
-                    "✅ Beneficiary Created<br>ID: <b>" + data.beneficiary_id + "</b>";
-
-                // Autofill in payout section
-                beneficiaryId.value = data.beneficiary_id;
-            } else {
-                alert(JSON.stringify(data));
-            }
+          // Autofill in payout section
+          beneficiaryId.value = data.beneficiary_id;
+        } else {
+          alert(JSON.stringify(data));
         }
+      }
 
+      async function sendPayout() {
+        const response = await fetch(
+          "http://localhost:6767/api/payout/transfer",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              beneficiaryId: beneficiaryId.value,
+              amount: Number(amount.value),
+            }),
+          },
+        );
 
-        async function sendPayout() {
+        const data = await response.json();
 
-            const response = await fetch(
-                "http://localhost:6767/api/payout/transfer",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        beneficiaryId: beneficiaryId.value,
-                        amount: Number(amount.value)
-                    })
-                }
-            );
-
-            const data = await response.json();
-
-            if (data.transfer_id) {
-                transferResult.style.display = "block";
-                transferResult.innerHTML =
-                    "💸 Transfer Initiated<br>ID: <b>" + data.transfer_id + "</b>";
-            } else {
-                alert(JSON.stringify(data));
-            }
+        if (data.transfer_id) {
+          transferResult.style.display = "block";
+          transferResult.innerHTML =
+            "💸 Transfer Initiated<br>ID: <b>" + data.transfer_id + "</b>";
+        } else {
+          alert(JSON.stringify(data));
         }
-
+      }
     </script>
-
-</body>
-
+  </body>
 </html>

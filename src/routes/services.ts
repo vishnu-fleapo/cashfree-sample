@@ -4,6 +4,7 @@ import {
   getCreatorServicesController,
   getServicesController,
   getSubscriptionsController,
+  getUserSubscriptionsController,
 } from "@/controllers";
 import { validateCreateService } from "@/middleware";
 
@@ -15,5 +16,6 @@ router
   .get(getServicesController);
 router.route("/creator").get(getCreatorServicesController);
 router.route("/subscriptions").get(getSubscriptionsController);
+router.route("/user").get(getUserSubscriptionsController);
 
 export default router;
