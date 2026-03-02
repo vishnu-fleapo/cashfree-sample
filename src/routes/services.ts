@@ -17,5 +17,6 @@ router
 router.route("/creator").get(getCreatorServicesController);
 router.route("/subscriptions").get(getSubscriptionsController);
 router.route("/user").get(getUserSubscriptionsController);
+router.route("/admin").get(() => {});
 
 export default router;

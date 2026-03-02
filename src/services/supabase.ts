@@ -3,14 +3,18 @@ import {
   AdminPayoutRequest,
   CashfreeBeneficiaries,
   CreateBeneficiaryInput,
+  CreateServiceInput,
   CreatorPendingPayoutResponse,
+  CreatorService,
   CreatorSubscription,
-  GetUserSubscriptionsResponse,
+  CreatorSubscriptionCreateInput,
+  CreatorSubscriptionResponse,
   Payment,
   Payout,
   PayoutTransferStatus,
   Service,
   Subscription,
+  TCreateServiceInput,
   User,
 } from "@/types";
 
@@ -64,7 +68,6 @@ export const findPaymentByOrderId = async (
 export const createPayment = async (payload: {
   order_id: string;
   user_id: string;
-  service_id: string;
   amount: number;
   status: string;
   gateway_payment_id: string;
@@ -150,7 +153,7 @@ export const getServicesPerCreator = async (
 
 export const getSubscriptionsPerCreator = async (
   creatorId: string,
-): Promise<CreatorSubscription[]> => {
+): Promise<CreatorSubscriptionResponse[]> => {
   const { data, error } = await supabase
     .from("subscriptions")
     .select(
@@ -345,4 +348,119 @@ export const getPayoutRequestsService = async (
   if (error) throw error;
 
   return data as any[];
+};
+
+export const createCreatorService = async (
+  input: TCreateServiceInput,
+): Promise<CreatorService> => {
+  const { title, description, price, currency, duration } = input;
+  const { data, error } = await supabase
+    .from("creator_services")
+    .insert({
+      title,
+      description,
+      price,
+      currency,
+      duration,
+    })
+    .select();
+
+  if (error) throw error;
+
+  return data[0] as CreatorService;
+};
+
+export const getCreatorServices = async (): Promise<CreatorService[]> => {
+  const { data, error } = await supabase.from("creator_services").select(`
+    id,
+    title,
+    description,
+    price,
+    duration,
+    currency,
+    created_at,
+    creator_subscriptions(count)
+  `);
+
+  if (error) throw error;
+
+  return data.map((service: any) => ({
+    ...service,
+    subscriptionCount: service.creator_subscriptions?.[0]?.count || 0,
+  }));
+};
+
+export const creatorSubscription = async (
+  input: CreatorSubscriptionCreateInput,
+): Promise<CreatorSubscription> => {
+  const { service_id, payment_id, user_id, expires_at } = input;
+  const { data, error } = await supabase
+    .from("creator_subscriptions")
+    .insert(<CreatorSubscription>{
+      service_id,
+      payment_id,
+      user_id,
+      expires_at,
+    })
+    .select();
+
+  if (error) throw error;
+
+  return data[0] as CreatorSubscription;
+};
+
+export const getCreatorServiceById = async (
+  id: string,
+): Promise<CreatorService> => {
+  const { data, error } = await supabase
+    .from("creator_services")
+    .select(
+      `
+      id,
+      title,
+      description,
+      price,
+      duration,
+      currency,
+      created_at
+    `,
+    )
+    .eq("id", id)
+    .single();
+
+  if (error) throw error;
+
+  return data as CreatorService;
+};
+
+export const getCreatorSubscriptions = async (
+  userId: string,
+): Promise<CreatorSubscription[]> => {
+  const { data, error } = await supabase
+    .from("creator_subscriptions")
+    .select(
+      `
+      id,
+      service_id,
+      payment_id,
+      user_id,
+      expires_at,
+      created_at,
+      creator_services (
+        id,
+        title,
+        description,
+        price,
+        duration,
+        currency,
+        created_at
+      )
+    `,
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return data as CreatorSubscription[];
 };

@@ -2,7 +2,12 @@ import express from "express";
 import { config } from "dotenv";
 import morgan from "morgan";
 import cors from "cors";
-import { paymentRoutes, payoutRoutes, servicesRoutes } from "./routes";
+import {
+  creatorServicesRoutes,
+  paymentRoutes,
+  payoutRoutes,
+  servicesRoutes,
+} from "./routes";
 import { verifyWebhookSignature } from "@/middleware/webhook";
 
 config();
@@ -25,6 +30,7 @@ app.use(express.json());
 app.use("/api/payment", paymentRoutes);
 app.use("/api/payout", payoutRoutes);
 app.use("/api/services", servicesRoutes);
+app.use("/api/creator-services", creatorServicesRoutes);
 
 app.get("/", (_req, res) => {
   res.send("🚀 Cashfree Server Running");

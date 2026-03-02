@@ -63,6 +63,11 @@ export type CreateOrderBody = {
   serviceId?: string;
 };
 
+export enum EOrderType {
+  USER_SUBSCRIPTION = "USER_SUBSCRIPTION",
+  CREATOR_SUBSCRIPTION = "CREATOR_SUBSCRIPTION",
+}
+
 export type VerifyOrderParams = {
   orderId: string;
 };
@@ -77,11 +82,8 @@ export type CreateOrderPayload = {
   };
   order_tags?: {
     serviceId?: string;
+    orderType?: EOrderType;
   };
-};
-
-export type CashfreeResponse<T = unknown> = {
-  data: T;
 };
 
 export type CashfreeCustomerDetails = {
@@ -94,6 +96,7 @@ export type CashfreeCustomerDetails = {
 
 export type CashfreeOrderTags = {
   serviceId?: string;
+  orderType?: EOrderType;
   [key: string]: string | undefined;
 };
 
