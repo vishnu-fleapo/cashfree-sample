@@ -2,7 +2,6 @@ import { cashfreePGInstance, cashfreePayoutInstance } from "@/utils";
 import { AxiosResponse } from "axios";
 import {
   CreateOrderPayload,
-  CashfreeResponse,
   GetPaymentsForOrderResponse,
   CashfreeOrder,
   CreateBeneficiaryV2Request,
@@ -13,7 +12,7 @@ import {
 
 export const createOrderService = (
   data: CreateOrderPayload,
-): Promise<AxiosResponse<CashfreeResponse>> =>
+): Promise<AxiosResponse<CashfreeOrder>> =>
   cashfreePGInstance.post("/pg/orders", data);
 
 export const verifyOrderService = (

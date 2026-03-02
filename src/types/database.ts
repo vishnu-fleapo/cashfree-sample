@@ -102,7 +102,7 @@ export type CreatorPendingPayoutResponse = {
   };
 };
 
-export interface CreatorSubscription {
+export interface CreatorSubscriptionResponse {
   id: string;
   created_at: string;
   user: {
@@ -137,3 +137,29 @@ export interface AdminPayoutRequest {
     name: string;
   } | null;
 }
+
+export type CreatorService = {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  duration: number;
+  currency: string;
+  created_at: string;
+};
+
+export type CreatorSubscription = {
+  id: string;
+  user_id: string;
+  service_id: string;
+  payment_id: string;
+  created_at: string;
+  expires_at: string;
+};
+
+export type CreatorSubscriptionCreateInput = {
+  service_id: string;
+  payment_id: string;
+  user_id: string;
+  expires_at: string;
+};

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Service Management</title>
+
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #f4f6fb;
+        padding: 40px;
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: auto;
+      }
+
+      h1 {
+        margin-bottom: 30px;
+      }
+
+      .card {
+        background: white;
+        padding: 24px;
+        border-radius: 14px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        margin-bottom: 30px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      .form-grid input,
+      .form-grid textarea {
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+      }
+
+      .form-grid textarea {
+        grid-column: span 2;
+        resize: vertical;
+      }
+
+      button {
+        padding: 10px 16px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        background: #2563eb;
+        color: white;
+        transition: 0.2s;
+      }
+
+      button:hover {
+        background: #1e40af;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+      }
+
+      th,
+      td {
+        padding: 14px;
+        text-align: left;
+      }
+
+      th {
+        background: #f3f5f9;
+        font-size: 13px;
+        color: #555;
+      }
+
+      tr {
+        border-bottom: 1px solid #eee;
+      }
+
+      tr:hover {
+        background: #fafbff;
+      }
+
+      .badge {
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: #e0f2fe;
+        color: #0369a1;
+        font-weight: 600;
+      }
+
+      .empty {
+        text-align: center;
+        padding: 30px;
+        color: #777;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>Admin Service Management</h1>
+
+      <!-- Create Service -->
+      <div class="card">
+        <h3>Create Service</h3>
+
+        <div class="form-grid">
+          <input id="title" placeholder="Service Title" />
+          <input id="price" type="number" placeholder="Price" />
+
+          <input id="currency" placeholder="Currency (INR, USD)" />
+          <input id="duration" type="number" placeholder="Duration (Days)" />
+
+          <textarea
+            id="description"
+            rows="3"
+            placeholder="Description"
+          ></textarea>
+        </div>
+
+        <br />
+        <button onclick="createService()" id="createBtn">Create Service</button>
+
+        <p id="status"></p>
+      </div>
+
+      <!-- Services Table -->
+      <div class="card">
+        <h3>All Services</h3>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Price</th>
+              <th>Duration</th>
+              <th>Subscribers</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody id="serviceTable"></tbody>
+        </table>
+
+        <div id="emptyState" class="empty" style="display: none">
+          No services found.
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const tableBody = document.getElementById("serviceTable");
+      const emptyState = document.getElementById("emptyState");
+
+      async function fetchServices() {
+        tableBody.innerHTML = "";
+        emptyState.style.display = "none";
+
+        const res = await fetch("http://localhost:6767/api/creator-services");
+        const data = await res.json();
+
+        if (!data || data.length === 0) {
+          emptyState.style.display = "block";
+          return;
+        }
+
+        data.forEach((service) => {
+          const row = document.createElement("tr");
+
+          row.innerHTML = `
+      <td>${service.title}</td>
+      <td>${service.currency} ${Number(service.price).toLocaleString()}</td>
+      <td>${service.duration} days</td>
+      <td><span class="badge">${service.subscriptionCount || 0}</span></td>
+      <td>${new Date(service.created_at).toLocaleString()}</td>
+    `;
+
+          tableBody.appendChild(row);
+        });
+      }
+
+      async function createService() {
+        const btn = document.getElementById("createBtn");
+        const statusEl = document.getElementById("status");
+
+        btn.disabled = true;
+        btn.innerText = "Creating...";
+
+        const body = {
+          title: document.getElementById("title").value,
+          description: document.getElementById("description").value,
+          price: Number(document.getElementById("price").value),
+          currency: document.getElementById("currency").value,
+          duration: Number(document.getElementById("duration").value),
+        };
+
+        try {
+          const res = await fetch(
+            "http://localhost:6767/api/creator-services",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            },
+          );
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.error || "Failed");
+          }
+
+          statusEl.innerText = "Service created successfully!";
+          statusEl.style.color = "green";
+
+          fetchServices();
+        } catch (err) {
+          statusEl.innerText = "Error creating service";
+          statusEl.style.color = "red";
+        }
+
+        btn.disabled = false;
+        btn.innerText = "Create Service";
+      }
+
+      fetchServices();
+    </script>
+  </body>
+</html>
